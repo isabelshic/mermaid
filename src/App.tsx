@@ -3,7 +3,13 @@ import type { Connection, Edge, Node } from '@xyflow/react'
 import { DiagramCanvas } from './components/canvas/DiagramCanvas'
 import { useDiagramHistory } from './hooks/useDiagramHistory'
 import { useDiagramKeyboardShortcuts } from './hooks/useDiagramKeyboardShortcuts'
-import { appendEdge, normalizeBidirectionalEdges, setEdgeDirection } from './lib/edges'
+import {
+  appendEdge,
+  getEdgeDirection,
+  getEdgeStrokeStyle,
+  normalizeBidirectionalEdges,
+  setEdgeDirection,
+} from './lib/edges'
 import { Sidebar } from './components/inspector/Sidebar'
 import type { SelectedDiagramNode } from './components/inspector/NodeInspector'
 import { DiagramUiContext } from './context/DiagramUiContext'
@@ -44,7 +50,7 @@ function App() {
   const [activeTheme, setActiveTheme] = useState<ThemeName>('blue')
   const [canvasTool, setCanvasTool] = useState<CanvasTool>('select')
   const [lineStrokeStyle, setLineStrokeStyle] = useState<EdgeStrokeStyle>('dashed')
-  const [lineDirection, setLineDirection] = useState<EdgeDirection>('none')
+  const [lineDirection, setLineDirection] = useState<EdgeDirection>('one-way')
   const [iconPickerNodeId, setIconPickerNodeId] = useState<string | null>(null)
 
   const selectedNodeIds = useMemo(() => {
@@ -87,6 +93,13 @@ function App() {
       setSelectedNode(selection.primary)
       setSelectedNodes(selection.all)
       setSelectedEdges(selection.edges)
+
+      if (selection.edges.length > 0) {
+        const primaryEdge = selection.edges[0]
+        setLineStrokeStyle(getEdgeStrokeStyle(primaryEdge.data))
+        setLineDirection(getEdgeDirection(primaryEdge.data))
+      }
+
       if (
         iconPickerNodeId &&
         !selection.all.some((node) => node.id === iconPickerNodeId)
@@ -150,9 +163,13 @@ function App() {
     [handleUpdateNodeData],
   )
 
-  const handleUpdateEdgeStrokeStyle = useCallback(
+  const applyStrokeStyleToSelectedEdges = useCallback(
     (strokeStyle: EdgeStrokeStyle) => {
       const selectedIds = new Set(selectedEdges.map((edge) => edge.id))
+      if (selectedIds.size === 0) {
+        return
+      }
+
       mutateEdges((current) =>
         normalizeBidirectionalEdges(
           current.map((edge) =>
@@ -175,9 +192,13 @@ function App() {
     [mutateEdges, selectedEdges],
   )
 
-  const handleUpdateEdgeDirection = useCallback(
+  const applyDirectionToSelectedEdges = useCallback(
     (direction: EdgeDirection) => {
       const selectedIds = new Set(selectedEdges.map((edge) => edge.id))
+      if (selectedIds.size === 0) {
+        return
+      }
+
       mutateEdges((current) => setEdgeDirection(current, selectedIds, direction))
       setSelectedEdges((current) =>
         current.map((edge) => ({
@@ -191,6 +212,22 @@ function App() {
       )
     },
     [mutateEdges, selectedEdges],
+  )
+
+  const handleLineStrokeStyleChange = useCallback(
+    (strokeStyle: EdgeStrokeStyle) => {
+      setLineStrokeStyle(strokeStyle)
+      applyStrokeStyleToSelectedEdges(strokeStyle)
+    },
+    [applyStrokeStyleToSelectedEdges],
+  )
+
+  const handleLineDirectionChange = useCallback(
+    (direction: EdgeDirection) => {
+      setLineDirection(direction)
+      applyDirectionToSelectedEdges(direction)
+    },
+    [applyDirectionToSelectedEdges],
   )
 
   const handleGroupSelection = useCallback(
@@ -270,17 +307,14 @@ function App() {
     (node) => nodes.find((entry) => entry.id === node.id) ?? node,
   )
 
-  const resolvedSelectedEdges = selectedEdges.map(
-    (edge) => edges.find((entry) => entry.id === edge.id) ?? edge,
-  )
-
   const diagramUiValue = useMemo(
     () => ({
       openIconPicker,
       closeIconPicker,
       iconPickerNodeId,
+      canvasTool,
     }),
-    [openIconPicker, closeIconPicker, iconPickerNodeId],
+    [openIconPicker, closeIconPicker, iconPickerNodeId, canvasTool],
   )
 
   return (
@@ -302,9 +336,9 @@ function App() {
             canvasTool={canvasTool}
             onCanvasToolChange={setCanvasTool}
             lineStrokeStyle={lineStrokeStyle}
-            onLineStrokeStyleChange={setLineStrokeStyle}
+            onLineStrokeStyleChange={handleLineStrokeStyleChange}
             lineDirection={lineDirection}
-            onLineDirectionChange={setLineDirection}
+            onLineDirectionChange={handleLineDirectionChange}
           />
         </main>
 
@@ -313,14 +347,11 @@ function App() {
           edges={edges}
           selectedNode={resolvedSelectedNode}
           selectedNodes={resolvedSelectedNodes}
-          selectedEdges={resolvedSelectedEdges}
           iconPickerNodeId={iconPickerNodeId}
           onUpdateLabel={handleUpdateLabel}
           onUpdateUrl={handleUpdateUrl}
           onUpdateIcon={handleUpdateIcon}
           onUpdateTheme={handleUpdateTheme}
-          onUpdateEdgeStrokeStyle={handleUpdateEdgeStrokeStyle}
-          onUpdateEdgeDirection={handleUpdateEdgeDirection}
           onGroupSelection={handleGroupSelection}
           onCloseIconPicker={closeIconPicker}
         />

@@ -43,6 +43,7 @@ export const themes: Record<
 
 export const edge = {
   default: neutral.edge,
+  selected: themes.blue.color,
 } as const
 
 export const cssVariables = {

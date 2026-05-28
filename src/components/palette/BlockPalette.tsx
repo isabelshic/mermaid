@@ -2,9 +2,7 @@ import {
   Square,
   CurveArray,
   CursorPointer,
-  Minus,
   SquareDashed,
-  ArrowRight,
   NavArrowDown,
 } from 'iconoir-react'
 import { useState } from 'react'
@@ -14,16 +12,17 @@ import { writePaletteDragPayload } from '../../lib/paletteDrag'
 import { panelActiveClass, panelDividerClass, panelHoverClass, panelPillClass } from '../../tokens/panel'
 import type { CanvasTool } from '../../types/canvas'
 import type { EdgeDirection, EdgeStrokeStyle } from '../../types/diagram'
-import { BidirectionalArrowIcon } from './icons/BidirectionalArrowIcon'
-import { GroupToolIcon } from './icons/GroupToolIcon'
-
-type PaletteIcon = typeof Minus
+import {
+  EdgeDirectionIcon,
+  EdgeStrokeIcon,
+  edgeDirectionLabels,
+  edgeStrokeLabels,
+} from './edgeToolbarIcons'
 
 const DEFAULT_BLOCK_ICON = 'Rhombus' as const
 const DEFAULT_BLOCK_LABEL = 'BLOCK'
 
-const ARROW_TOOLBAR_OPTIONS = ['one-way', 'both'] as const
-type ArrowToolbarOption = (typeof ARROW_TOOLBAR_OPTIONS)[number]
+const DIRECTION_TOOLBAR_OPTIONS = ['none', 'one-way', 'both'] as const
 
 type BlockPaletteProps = {
   activeTheme: ThemeName
@@ -38,45 +37,8 @@ type BlockPaletteProps = {
 
 const themeOptions: ThemeName[] = ['blue', 'green', 'magenta']
 
-const lineStyleIcons: Record<'solid', PaletteIcon> = {
-  solid: Minus,
-}
-
-const lineStyleLabels: Record<EdgeStrokeStyle, string> = {
-  solid: 'Solid line',
-  dashed: 'Dashed line',
-}
-
-const directionIcons: Record<'one-way', PaletteIcon> = {
-  'one-way': ArrowRight,
-}
-
-const directionLabels: Record<ArrowToolbarOption, string> = {
-  'one-way': 'One-way arrow',
-  both: 'Both ways',
-}
-
 function Divider() {
   return <div className={`mx-1 h-6 w-px ${panelDividerClass}`} />
-}
-
-function ToolbarIcon({
-  icon: Icon,
-  active,
-  activeColor,
-}: {
-  icon: PaletteIcon
-  active: boolean
-  activeColor: string
-}) {
-  return (
-    <Icon
-      width={16}
-      height={16}
-      strokeWidth={1.5}
-      color={active ? activeColor : 'var(--neutral-text-muted)'}
-    />
-  )
 }
 
 export function BlockPalette({
@@ -91,10 +53,6 @@ export function BlockPalette({
 }: BlockPaletteProps) {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false)
   const theme = themes[activeTheme]
-
-  const toggleArrowDirection = (direction: ArrowToolbarOption) => {
-    onLineDirectionChange(lineDirection === direction ? 'none' : direction)
-  }
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center px-4">
@@ -228,11 +186,11 @@ export function BlockPalette({
           className={`flex cursor-pointer items-center justify-center rounded-md p-2 transition-colors ${
             lineStrokeStyle === 'solid' ? panelActiveClass : panelHoverClass
           }`}
-          aria-label={lineStyleLabels.solid}
-          title={`${lineStyleLabels.solid} for new connections`}
+          aria-label={edgeStrokeLabels.solid}
+          title={edgeStrokeLabels.solid}
         >
-          <ToolbarIcon
-            icon={lineStyleIcons.solid}
+          <EdgeStrokeIcon
+            strokeStyle="solid"
             active={lineStrokeStyle === 'solid'}
             activeColor={theme.color}
           />
@@ -244,53 +202,36 @@ export function BlockPalette({
           className={`flex cursor-pointer items-center justify-center rounded-md p-2 transition-colors ${
             lineStrokeStyle === 'dashed' ? panelActiveClass : panelHoverClass
           }`}
-          aria-label={lineStyleLabels.dashed}
-          title={`${lineStyleLabels.dashed} for new connections`}
+          aria-label={edgeStrokeLabels.dashed}
+          title={edgeStrokeLabels.dashed}
         >
-          <GroupToolIcon
-            color={
-              lineStrokeStyle === 'dashed'
-                ? theme.color
-                : 'var(--neutral-text-muted)'
-            }
+          <EdgeStrokeIcon
+            strokeStyle="dashed"
+            active={lineStrokeStyle === 'dashed'}
+            activeColor={theme.color}
           />
         </button>
 
         <Divider />
 
-        <button
-          type="button"
-          onClick={() => toggleArrowDirection('one-way')}
-          className={`flex cursor-pointer items-center justify-center rounded-md p-2 transition-colors ${
-            lineDirection === 'one-way' ? panelActiveClass : panelHoverClass
-          }`}
-          aria-label={directionLabels['one-way']}
-          title={`${directionLabels['one-way']} for new connections (click again to clear)`}
-        >
-          <ToolbarIcon
-            icon={directionIcons['one-way']}
-            active={lineDirection === 'one-way'}
-            activeColor={theme.color}
-          />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => toggleArrowDirection('both')}
-          className={`flex cursor-pointer items-center justify-center rounded-md p-2 transition-colors ${
-            lineDirection === 'both' ? panelActiveClass : panelHoverClass
-          }`}
-          aria-label={directionLabels.both}
-          title={`${directionLabels.both} for new connections (click again to clear)`}
-        >
-          <BidirectionalArrowIcon
-            color={
-              lineDirection === 'both'
-                ? theme.color
-                : 'var(--neutral-text-muted)'
-            }
-          />
-        </button>
+        {DIRECTION_TOOLBAR_OPTIONS.map((direction) => (
+          <button
+            key={direction}
+            type="button"
+            onClick={() => onLineDirectionChange(direction)}
+            className={`flex cursor-pointer items-center justify-center rounded-md p-2 transition-colors ${
+              lineDirection === direction ? panelActiveClass : panelHoverClass
+            }`}
+            aria-label={edgeDirectionLabels[direction]}
+            title={edgeDirectionLabels[direction]}
+          >
+            <EdgeDirectionIcon
+              direction={direction}
+              active={lineDirection === direction}
+              activeColor={theme.color}
+            />
+          </button>
+        ))}
       </div>
 
       {canvasTool === 'connect' && (
@@ -299,8 +240,8 @@ export function BlockPalette({
           style={uiTextStyle}
         >
           <span className="text-[9px] text-[var(--neutral-text-muted)]">
-            Drag between block handles. Draw the return line on the same path to
-            make it both ways, or use the line inspector.
+            Drag between block handles. Use the toolbar to set arrow direction
+            and line style before or after connecting.
           </span>
         </div>
       )}

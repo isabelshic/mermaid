@@ -2,12 +2,18 @@ import {
   BaseEdge,
   getBezierPath,
   Position,
+  useStore,
   type EdgeProps,
 } from '@xyflow/react'
 import { edge } from '../../tokens/colors'
-import { getEdgeDirection, getEdgeStrokeStyle } from '../../lib/edges'
+import {
+  applyFanOffset,
+  getEdgeDirection,
+  getEdgeStrokeStyle,
+  getFanOffsetForEdge,
+} from '../../lib/edges'
 
-const ARROW_INSET = 8
+const ARROW_TIP_NUDGE = 3
 const BEZIER_CURVATURE = 0.25
 
 function calculateControlOffset(distance: number, curvature: number) {
@@ -17,75 +23,61 @@ function calculateControlOffset(distance: number, curvature: number) {
   return curvature * 25 * Math.sqrt(-distance)
 }
 
-function getBezierControlPoint({
-  position,
-  x,
-  y,
-  towardX,
-  towardY,
-  curvature = BEZIER_CURVATURE,
+function getControlWithCurvature({
+  pos,
+  x1,
+  y1,
+  x2,
+  y2,
+  c = BEZIER_CURVATURE,
 }: {
-  position: Position
-  x: number
-  y: number
-  towardX: number
-  towardY: number
-  curvature?: number
+  pos: Position
+  x1: number
+  y1: number
+  x2: number
+  y2: number
+  c?: number
 }) {
-  switch (position) {
+  switch (pos) {
     case Position.Left:
-      return {
-        x: x - calculateControlOffset(x - towardX, curvature),
-        y,
-      }
+      return [x1 - calculateControlOffset(x1 - x2, c), y1]
     case Position.Right:
-      return {
-        x: x + calculateControlOffset(towardX - x, curvature),
-        y,
-      }
+      return [x1 + calculateControlOffset(x2 - x1, c), y1]
     case Position.Top:
-      return {
-        x,
-        y: y - calculateControlOffset(y - towardY, curvature),
-      }
+      return [x1, y1 - calculateControlOffset(y1 - y2, c)]
     case Position.Bottom:
-      return {
-        x,
-        y: y + calculateControlOffset(towardY - y, curvature),
-      }
+      return [x1, y1 + calculateControlOffset(y2 - y1, c)]
   }
 }
 
-function offsetToward(
-  fromX: number,
-  fromY: number,
-  toX: number,
-  toY: number,
-  distance: number,
+/** Tip on the path at the handle, pointing into the node. */
+function getArrowAtHandle(
+  handleX: number,
+  handleY: number,
+  controlX: number,
+  controlY: number,
 ) {
-  const dx = toX - fromX
-  const dy = toY - fromY
+  const dx = handleX - controlX
+  const dy = handleY - controlY
   const length = Math.hypot(dx, dy) || 1
 
   return {
-    x: fromX + (dx / length) * distance,
-    y: fromY + (dy / length) * distance,
+    x: handleX - (dx / length) * ARROW_TIP_NUDGE,
+    y: handleY - (dy / length) * ARROW_TIP_NUDGE,
+    angle: Math.atan2(dy, dx),
   }
-}
-
-function getArrowInset(sourceX: number, sourceY: number, targetX: number, targetY: number) {
-  const length = Math.hypot(targetX - sourceX, targetY - sourceY)
-  return Math.min(ARROW_INSET, Math.max(0, length / 2 - 2))
 }
 
 function ChevronArrowhead({
   x,
   y,
   angle,
+  stroke,
 }: {
   x: number
   y: number
   angle: number
+  stroke: string
 }) {
   const degrees = (angle * 180) / Math.PI
 
@@ -94,7 +86,7 @@ function ChevronArrowhead({
       <path
         d="M -5 -3 L 0 0 L -5 3"
         fill="none"
-        stroke={edge.default}
+        stroke={stroke}
         strokeWidth="1.2"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -106,99 +98,132 @@ function ChevronArrowhead({
 export function ConnectorEdge({
   id,
   data,
+  source,
+  target,
+  sourceHandleId,
+  targetHandleId,
   sourceX,
   sourceY,
   targetX,
   targetY,
   sourcePosition,
   targetPosition,
+  selected,
   style,
 }: EdgeProps) {
+  const edges = useStore((state) => state.edges)
+
+  const sourceFan = getFanOffsetForEdge(
+    edges,
+    id,
+    'source',
+    source,
+    sourceHandleId,
+    sourcePosition,
+  )
+  const targetFan = getFanOffsetForEdge(
+    edges,
+    id,
+    'target',
+    target,
+    targetHandleId,
+    targetPosition,
+  )
+
+  const fannedSource = applyFanOffset(sourceX, sourceY, sourcePosition, sourceFan)
+  const fannedTarget = applyFanOffset(targetX, targetY, targetPosition, targetFan)
+
+  const [sourceControlX, sourceControlY] = getControlWithCurvature({
+    pos: sourcePosition,
+    x1: fannedSource.x,
+    y1: fannedSource.y,
+    x2: fannedTarget.x,
+    y2: fannedTarget.y,
+  })
+  const [targetControlX, targetControlY] = getControlWithCurvature({
+    pos: targetPosition,
+    x1: fannedTarget.x,
+    y1: fannedTarget.y,
+    x2: fannedSource.x,
+    y2: fannedSource.y,
+  })
+
   const strokeStyle = getEdgeStrokeStyle(data)
   const direction = getEdgeDirection(data)
+  const strokeColor = selected ? edge.selected : edge.default
+  const strokeWidth = selected ? 2 : 1
   const showTargetArrow = direction !== 'none'
   const showSourceArrow = direction === 'both'
 
-  const endInset = showTargetArrow
-    ? getArrowInset(sourceX, sourceY, targetX, targetY)
-    : 0
-  const startInset = showSourceArrow
-    ? getArrowInset(sourceX, sourceY, targetX, targetY)
-    : 0
+  const targetArrow = showTargetArrow
+    ? getArrowAtHandle(
+        fannedTarget.x,
+        fannedTarget.y,
+        targetControlX,
+        targetControlY,
+      )
+    : null
 
-  const lineStart = offsetToward(
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    startInset,
-  )
-  const lineEnd = offsetToward(
-    targetX,
-    targetY,
-    sourceX,
-    sourceY,
-    endInset,
-  )
+  const sourceArrow = showSourceArrow
+    ? getArrowAtHandle(
+        fannedSource.x,
+        fannedSource.y,
+        sourceControlX,
+        sourceControlY,
+      )
+    : null
+
+  const pathSourceX = sourceArrow?.x ?? fannedSource.x
+  const pathSourceY = sourceArrow?.y ?? fannedSource.y
+  const pathTargetX = targetArrow?.x ?? fannedTarget.x
+  const pathTargetY = targetArrow?.y ?? fannedTarget.y
 
   const [edgePath] = getBezierPath({
-    sourceX: lineStart.x,
-    sourceY: lineStart.y,
-    targetX: lineEnd.x,
-    targetY: lineEnd.y,
+    sourceX: pathSourceX,
+    sourceY: pathSourceY,
+    targetX: pathTargetX,
+    targetY: pathTargetY,
     sourcePosition,
     targetPosition,
     curvature: BEZIER_CURVATURE,
   })
 
-  const sourceControl = getBezierControlPoint({
-    position: sourcePosition,
-    x: lineStart.x,
-    y: lineStart.y,
-    towardX: lineEnd.x,
-    towardY: lineEnd.y,
-  })
-  const targetControl = getBezierControlPoint({
-    position: targetPosition,
-    x: lineEnd.x,
-    y: lineEnd.y,
-    towardX: lineStart.x,
-    towardY: lineStart.y,
-  })
-
-  const targetArrowAngle = Math.atan2(
-    lineEnd.y - targetControl.y,
-    lineEnd.x - targetControl.x,
-  )
-  const sourceArrowAngle = Math.atan2(
-    lineStart.y - sourceControl.y,
-    lineStart.x - sourceControl.x,
-  )
-
   return (
     <>
+      {selected && (
+        <path
+          d={edgePath}
+          fill="none"
+          stroke={edge.selected}
+          strokeWidth={8}
+          strokeOpacity={0.2}
+          strokeLinecap="round"
+        />
+      )}
       <BaseEdge
         id={id}
         path={edgePath}
         style={{
-          stroke: edge.default,
-          strokeWidth: 1,
+          stroke: strokeColor,
+          strokeWidth,
           strokeDasharray: strokeStyle === 'dashed' ? '6 4' : undefined,
           ...style,
         }}
       />
-      {showSourceArrow && (
+      {sourceArrow && (
         <ChevronArrowhead
-          x={lineStart.x}
-          y={lineStart.y}
-          angle={sourceArrowAngle}
+          x={sourceArrow.x}
+          y={sourceArrow.y}
+          angle={sourceArrow.angle}
+          stroke={strokeColor}
         />
       )}
-      {showTargetArrow && (
+      {targetArrow && (
         <ChevronArrowhead
-          x={lineEnd.x}
-          y={lineEnd.y}
-          angle={targetArrowAngle}
+          x={targetArrow.x}
+          y={targetArrow.y}
+          angle={targetArrow.angle}
+          stroke={strokeColor}
         />
       )}
     </>

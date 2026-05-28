@@ -1,10 +1,31 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import type { MouseEvent } from 'react'
+import type { CSSProperties, MouseEvent } from 'react'
 import { themes } from '../../tokens/colors'
 import { getIcon } from '../../lib/icons'
 import type { AssetNodeData } from '../../types/diagram'
 import { InlineLabelEditor } from './InlineLabelEditor'
 import { useDiagramUi } from '../../context/DiagramUiContext'
+
+type SlotConfig = {
+  id: string
+  position: Position
+  style: CSSProperties
+}
+
+const connectionSlots: SlotConfig[] = [
+  { id: 'left-top', position: Position.Left, style: { top: '25%' } },
+  { id: 'left', position: Position.Left, style: { top: '50%' } },
+  { id: 'left-bottom', position: Position.Left, style: { top: '75%' } },
+  { id: 'right-top', position: Position.Right, style: { top: '25%' } },
+  { id: 'right', position: Position.Right, style: { top: '50%' } },
+  { id: 'right-bottom', position: Position.Right, style: { top: '75%' } },
+  { id: 'top-left', position: Position.Top, style: { left: '25%' } },
+  { id: 'top', position: Position.Top, style: { left: '50%' } },
+  { id: 'top-right', position: Position.Top, style: { left: '75%' } },
+  { id: 'bottom-left', position: Position.Bottom, style: { left: '25%' } },
+  { id: 'bottom', position: Position.Bottom, style: { left: '50%' } },
+  { id: 'bottom-right', position: Position.Bottom, style: { left: '75%' } },
+]
 
 export function AssetNode({ data, selected, id }: NodeProps) {
   const nodeData = data as AssetNodeData
@@ -18,9 +39,12 @@ export function AssetNode({ data, selected, id }: NodeProps) {
   }
 
   return (
-    <div className="asset-node relative">
+    <div
+      className="asset-node group/asset-node relative"
+      style={{ '--slot-color': theme.color } as CSSProperties}
+    >
       <div
-        className="flex size-[68px] cursor-grab items-center justify-center border border-dashed active:cursor-grabbing"
+        className="relative z-[2] flex size-[68px] cursor-grab items-center justify-center border border-dashed active:cursor-grabbing"
         style={{
           borderColor: theme.color,
           backgroundColor: theme.fill,
@@ -39,7 +63,7 @@ export function AssetNode({ data, selected, id }: NodeProps) {
         />
       </div>
 
-      <div className="absolute top-full left-1/2 mt-1.5 -translate-x-1/2 whitespace-nowrap">
+      <div className="absolute top-full left-1/2 z-[2] mt-1.5 -translate-x-1/2 whitespace-nowrap">
         <InlineLabelEditor
           nodeId={id}
           label={nodeData.label ?? ''}
@@ -50,10 +74,18 @@ export function AssetNode({ data, selected, id }: NodeProps) {
         />
       </div>
 
-      <Handle type="target" position={Position.Left} id="left" />
-      <Handle type="source" position={Position.Right} id="right" />
-      <Handle type="target" position={Position.Top} id="top" />
-      <Handle type="source" position={Position.Bottom} id="bottom" />
+      {connectionSlots.map((slot) => (
+        <Handle
+          key={slot.id}
+          type="source"
+          position={slot.position}
+          id={slot.id}
+          className="asset-slot-handle"
+          style={slot.style}
+          isConnectableStart
+          isConnectableEnd
+        />
+      ))}
     </div>
   )
 }

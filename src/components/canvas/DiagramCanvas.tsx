@@ -216,7 +216,16 @@ function DiagramCanvasInner({
         onEdgesChange={onEdgesChange}
         onConnect={handleConnect}
         connectionMode={ConnectionMode.Loose}
-        isValidConnection={() => true}
+        connectionRadius={connectMode ? 18 : 20}
+        isValidConnection={(connection) =>
+          Boolean(
+            connection.source &&
+              connection.target &&
+              connection.source !== connection.target &&
+              connection.sourceHandle &&
+              connection.targetHandle,
+          )
+        }
         onSelectionChange={handleSelectionChange}
         onDragOver={handleDragOver}
         onDrop={handleDrop}

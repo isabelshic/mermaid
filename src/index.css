@@ -70,19 +70,50 @@ body {
   stroke-linecap: round;
 }
 
-.react-flow__handle {
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  border: 1px solid var(--edge-default) !important;
-  background: var(--canvas-bg) !important;
-  width: 8px !important;
-  height: 8px !important;
+.react-flow__edge.selected {
+  z-index: 2 !important;
 }
 
-.react-flow__node-asset:hover .react-flow__handle,
-.react-flow__node-asset.selected .react-flow__handle,
-.connect-mode .react-flow__handle {
+.react-flow__edge.selected .react-flow__edge-interaction {
+  stroke-width: 20px !important;
+}
+
+.react-flow__handle {
+  opacity: 0;
+  transition:
+    opacity 0.15s ease,
+    box-shadow 0.15s ease;
+  border: 1px solid var(--edge-default) !important;
+  background: #fff !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 2px !important;
+  pointer-events: auto !important;
+}
+
+.react-flow__node-asset:hover .react-flow__handle.asset-slot-handle,
+.react-flow__node-asset.selected .react-flow__handle.asset-slot-handle {
   opacity: 1;
+  border-color: var(--slot-color, var(--theme-blue)) !important;
+}
+
+.connect-mode .react-flow__edge {
+  pointer-events: none !important;
+}
+
+.connect-mode .react-flow__handle.asset-slot-handle {
+  opacity: 1 !important;
+  z-index: 10;
+  width: 10px !important;
+  height: 10px !important;
+  pointer-events: auto !important;
+  box-shadow: none;
+  border: 1px solid var(--slot-color, var(--theme-blue)) !important;
+}
+
+.connect-mode .react-flow__handle.asset-slot-handle:hover {
+  box-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--slot-color, var(--theme-blue)) 25%, transparent);
 }
 
 .connect-mode .react-flow__pane {

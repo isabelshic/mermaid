@@ -1,9 +1,11 @@
 import { createContext, useContext } from 'react'
+import type { CanvasTool } from '../types/canvas'
 
 type DiagramUiContextValue = {
   openIconPicker: (nodeId: string) => void
   closeIconPicker: () => void
   iconPickerNodeId: string | null
+  canvasTool: CanvasTool
 }
 
 export const DiagramUiContext = createContext<DiagramUiContextValue | null>(

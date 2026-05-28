@@ -2,12 +2,10 @@ import type { Edge, Node } from '@xyflow/react'
 import { ExportPanel } from '../export/ExportPanel'
 import { NodeInspector } from './NodeInspector'
 import { IconPickerPanel } from './IconPickerPanel'
-import { EdgeInspector } from './EdgeInspector'
 import type { SelectedDiagramNode } from './NodeInspector'
 import type { AssetNodeData } from '../../types/diagram'
 import type { IconName } from '../../lib/icons'
 import type { ThemeName } from '../../tokens/colors'
-import type { EdgeDirection, EdgeStrokeStyle } from '../../types/diagram'
 import { panelBorderClass, panelSurfaceClass } from '../../tokens/panel'
 
 type SidebarProps = {
@@ -15,14 +13,11 @@ type SidebarProps = {
   edges: Edge[]
   selectedNode: SelectedDiagramNode | null
   selectedNodes: Node[]
-  selectedEdges: Edge[]
   iconPickerNodeId: string | null
   onUpdateLabel: (nodeId: string, label: string) => void
   onUpdateUrl: (nodeId: string, url: string) => void
   onUpdateIcon: (nodeId: string, icon: IconName) => void
   onUpdateTheme: (nodeId: string, theme: ThemeName) => void
-  onUpdateEdgeStrokeStyle: (strokeStyle: EdgeStrokeStyle) => void
-  onUpdateEdgeDirection: (direction: EdgeDirection) => void
   onGroupSelection: (label: string, theme: ThemeName) => void
   onCloseIconPicker: () => void
 }
@@ -32,14 +27,11 @@ export function Sidebar({
   edges,
   selectedNode,
   selectedNodes,
-  selectedEdges,
   iconPickerNodeId,
   onUpdateLabel,
   onUpdateUrl,
   onUpdateIcon,
   onUpdateTheme,
-  onUpdateEdgeStrokeStyle,
-  onUpdateEdgeDirection,
   onGroupSelection,
   onCloseIconPicker,
 }: SidebarProps) {
@@ -48,9 +40,6 @@ export function Sidebar({
         (node) => node.id === iconPickerNodeId && node.type === 'asset',
       ) as Node<AssetNodeData> | undefined)
     : undefined
-
-  const showEdgeInspector =
-    !iconPickerNode && selectedEdges.length > 0 && selectedNodes.length === 0
 
   return (
     <aside className="flex h-full min-h-0 w-72 shrink-0 overflow-hidden p-2">
@@ -64,12 +53,6 @@ export function Sidebar({
               onUpdateIcon={onUpdateIcon}
               onUpdateTheme={onUpdateTheme}
               onClose={onCloseIconPicker}
-            />
-          ) : showEdgeInspector ? (
-            <EdgeInspector
-              selectedEdges={selectedEdges}
-              onUpdateStrokeStyle={onUpdateEdgeStrokeStyle}
-              onUpdateDirection={onUpdateEdgeDirection}
             />
           ) : (
             <NodeInspector

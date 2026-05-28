@@ -1,6 +1,7 @@
 import {
   MarkerType,
   addEdge,
+  Position,
   type Connection,
   type Edge,
 } from '@xyflow/react'
@@ -18,6 +19,92 @@ export const CONNECTOR_ARROW_MARKER = {
   width: 12,
   height: 12,
   color: edgeColor.default,
+}
+
+export const EDGE_FAN_OFFSET_PX = 10
+
+const DEFAULT_SLOT_BY_POSITION: Record<Position, string> = {
+  [Position.Top]: 'top',
+  [Position.Bottom]: 'bottom',
+  [Position.Left]: 'left',
+  [Position.Right]: 'right',
+}
+
+/** One fan-out group per physical slot (e.g. top-left ≠ top). */
+export function normalizeSlotId(
+  handleId: string | null | undefined,
+  position: Position,
+): string {
+  if (!handleId) {
+    return DEFAULT_SLOT_BY_POSITION[position] ?? position
+  }
+
+  return handleId
+}
+
+export function getEdgeHandleId(
+  edge: Edge,
+  role: 'source' | 'target',
+): string | null | undefined {
+  if (role === 'source') {
+    return edge.sourceHandle
+  }
+  return edge.targetHandle
+}
+
+export function getFanOffsetForEdge(
+  edges: Edge[],
+  edgeId: string,
+  role: 'source' | 'target',
+  nodeId: string,
+  handleId: string | null | undefined,
+  position: Position,
+  spreadPx = EDGE_FAN_OFFSET_PX,
+): number {
+  const slot = normalizeSlotId(handleId, position)
+  const peers = edges
+    .filter((edge) => {
+      const onNode =
+        role === 'source' ? edge.source === nodeId : edge.target === nodeId
+      if (!onNode) return false
+
+      const peerHandle = getEdgeHandleId(edge, role)
+      return normalizeSlotId(peerHandle, position) === slot
+    })
+    .sort((a, b) => a.id.localeCompare(b.id))
+
+  if (peers.length <= 1) {
+    return 0
+  }
+
+  const index = peers.findIndex((edge) => edge.id === edgeId)
+  if (index < 0) {
+    return 0
+  }
+
+  return (index - (peers.length - 1) / 2) * spreadPx
+}
+
+export function applyFanOffset(
+  x: number,
+  y: number,
+  position: Position,
+  offset: number,
+): { x: number; y: number } {
+  if (offset === 0) {
+    return { x, y }
+  }
+
+  switch (position) {
+    case Position.Left:
+    case Position.Right:
+      return { x, y: y + offset }
+    case Position.Top:
+    case Position.Bottom:
+      return { x: x + offset, y }
+    default:
+      return { x, y }
+  }
 }
 
 export function getEdgeData(edge: Edge): ConnectorEdgeData {
@@ -66,6 +153,8 @@ export function createConnectorEdge(
       id: `e-${connection.source}-${connection.target}-${Date.now()}`,
       source: connection.source!,
       target: connection.target!,
+      sourceHandle: connection.sourceHandle ?? null,
+      targetHandle: connection.targetHandle ?? null,
       type: 'connector',
       data: { strokeStyle, direction },
     },
