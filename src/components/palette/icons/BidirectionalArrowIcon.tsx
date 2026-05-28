@@ -1,0 +1,25 @@
+type BidirectionalArrowIconProps = {
+  size?: number
+  color?: string
+}
+
+export function BidirectionalArrowIcon({
+  size = 16,
+  color = 'currentColor',
+}: BidirectionalArrowIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        fill={color}
+        d="M7.354 5.646a.5.5 0 0 1 0 .708L4.707 9h10.586l-2.647-2.646a.5.5 0 0 1 .708-.708l3.5 3.5a.5.5 0 0 1 0 .708l-3.5 3.5a.5.5 0 0 1-.708-.708L15.293 10H4.707l2.647 2.646a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0"
+      />
+    </svg>
+  )
+}

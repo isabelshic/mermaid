@@ -1,0 +1,332 @@
+import { useCallback, useMemo, useState } from 'react'
+import type { Connection, Edge, Node } from '@xyflow/react'
+import { DiagramCanvas } from './components/canvas/DiagramCanvas'
+import { useDiagramHistory } from './hooks/useDiagramHistory'
+import { useDiagramKeyboardShortcuts } from './hooks/useDiagramKeyboardShortcuts'
+import { appendEdge, normalizeBidirectionalEdges, setEdgeDirection } from './lib/edges'
+import { Sidebar } from './components/inspector/Sidebar'
+import type { SelectedDiagramNode } from './components/inspector/NodeInspector'
+import { DiagramUiContext } from './context/DiagramUiContext'
+import { createSampleDiagram } from './lib/demo/sampleDiagram'
+import { createGroupFromSelection, absorbAssetsIntoGroup, addGroupAtPosition } from './lib/createNode'
+import type { IconName } from './lib/icons'
+import type { ThemeName } from './tokens/colors'
+import type { CanvasTool } from './types/canvas'
+import type { EdgeDirection, EdgeStrokeStyle } from './types/diagram'
+
+function App() {
+  const sample = useMemo(() => {
+    const diagram = createSampleDiagram()
+    return {
+      ...diagram,
+      edges: normalizeBidirectionalEdges(diagram.edges),
+    }
+  }, [])
+
+  const {
+    nodes,
+    edges,
+    setNodes,
+    onNodesChange,
+    onEdgesChange,
+    mutateNodes,
+    mutateEdges,
+    replaceDiagram,
+    undo,
+    redo,
+  } = useDiagramHistory(sample.nodes, sample.edges)
+
+  const [selectedNode, setSelectedNode] = useState<SelectedDiagramNode | null>(
+    null,
+  )
+  const [selectedNodes, setSelectedNodes] = useState<Node[]>([])
+  const [selectedEdges, setSelectedEdges] = useState<Edge[]>([])
+  const [activeTheme, setActiveTheme] = useState<ThemeName>('blue')
+  const [canvasTool, setCanvasTool] = useState<CanvasTool>('select')
+  const [lineStrokeStyle, setLineStrokeStyle] = useState<EdgeStrokeStyle>('dashed')
+  const [lineDirection, setLineDirection] = useState<EdgeDirection>('none')
+  const [iconPickerNodeId, setIconPickerNodeId] = useState<string | null>(null)
+
+  const selectedNodeIds = useMemo(() => {
+    const ids = new Set<string>()
+    for (const node of selectedNodes) {
+      ids.add(node.id)
+    }
+    for (const node of nodes) {
+      if (node.selected) {
+        ids.add(node.id)
+      }
+    }
+    return ids
+  }, [nodes, selectedNodes])
+
+  useDiagramKeyboardShortcuts({
+    selectedNodeIds,
+    nodes,
+    edges,
+    onPaste: replaceDiagram,
+    onUndo: undo,
+    onRedo: redo,
+  })
+
+  const handleConnect = useCallback(
+    (connection: Connection) => {
+      mutateEdges((current) =>
+        appendEdge(current, connection, lineStrokeStyle, lineDirection),
+      )
+    },
+    [lineDirection, lineStrokeStyle, mutateEdges],
+  )
+
+  const handleSelectionChange = useCallback(
+    (selection: {
+      primary: SelectedDiagramNode | null
+      all: Node[]
+      edges: Edge[]
+    }) => {
+      setSelectedNode(selection.primary)
+      setSelectedNodes(selection.all)
+      setSelectedEdges(selection.edges)
+      if (
+        iconPickerNodeId &&
+        !selection.all.some((node) => node.id === iconPickerNodeId)
+      ) {
+        setIconPickerNodeId(null)
+      }
+    },
+    [iconPickerNodeId],
+  )
+
+  const handleUpdateNodeData = useCallback(
+    (nodeId: string, patch: Record<string, unknown>) => {
+      mutateNodes((current) =>
+        current.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, ...patch } }
+            : node,
+        ),
+      )
+      setSelectedNode((current) =>
+        current?.id === nodeId
+          ? { ...current, data: { ...current.data, ...patch } }
+          : current,
+      )
+      setSelectedNodes((current) =>
+        current.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, ...patch } }
+            : node,
+        ),
+      )
+    },
+    [mutateNodes],
+  )
+
+  const handleUpdateLabel = useCallback(
+    (nodeId: string, label: string) => {
+      handleUpdateNodeData(nodeId, { label })
+    },
+    [handleUpdateNodeData],
+  )
+
+  const handleUpdateUrl = useCallback(
+    (nodeId: string, url: string) => {
+      handleUpdateNodeData(nodeId, { url })
+    },
+    [handleUpdateNodeData],
+  )
+
+  const handleUpdateIcon = useCallback(
+    (nodeId: string, icon: IconName) => {
+      handleUpdateNodeData(nodeId, { icon })
+    },
+    [handleUpdateNodeData],
+  )
+
+  const handleUpdateTheme = useCallback(
+    (nodeId: string, theme: ThemeName) => {
+      handleUpdateNodeData(nodeId, { theme })
+    },
+    [handleUpdateNodeData],
+  )
+
+  const handleUpdateEdgeStrokeStyle = useCallback(
+    (strokeStyle: EdgeStrokeStyle) => {
+      const selectedIds = new Set(selectedEdges.map((edge) => edge.id))
+      mutateEdges((current) =>
+        normalizeBidirectionalEdges(
+          current.map((edge) =>
+            selectedIds.has(edge.id)
+              ? {
+                  ...edge,
+                  data: { ...edge.data, strokeStyle },
+                }
+              : edge,
+          ),
+        ),
+      )
+      setSelectedEdges((current) =>
+        current.map((edge) => ({
+          ...edge,
+          data: { ...edge.data, strokeStyle },
+        })),
+      )
+    },
+    [mutateEdges, selectedEdges],
+  )
+
+  const handleUpdateEdgeDirection = useCallback(
+    (direction: EdgeDirection) => {
+      const selectedIds = new Set(selectedEdges.map((edge) => edge.id))
+      mutateEdges((current) => setEdgeDirection(current, selectedIds, direction))
+      setSelectedEdges((current) =>
+        current.map((edge) => ({
+          ...edge,
+          data: {
+            ...edge.data,
+            direction,
+            bidirectional: direction === 'both',
+          },
+        })),
+      )
+    },
+    [mutateEdges, selectedEdges],
+  )
+
+  const handleGroupSelection = useCallback(
+    (label: string, theme: ThemeName) => {
+      const selectedIds = selectedNodes.map((node) => node.id)
+      mutateNodes((current) =>
+        createGroupFromSelection(current, selectedIds, theme, label),
+      )
+      setSelectedNodes([])
+      setSelectedNode(null)
+      setIconPickerNodeId(null)
+    },
+    [mutateNodes, selectedNodes],
+  )
+
+  const handleNodeDragStop = useCallback(
+    (node: Node) => {
+      if (node.type !== 'group') {
+        return
+      }
+
+      mutateNodes((current) => absorbAssetsIntoGroup(current, node.id))
+    },
+    [mutateNodes],
+  )
+
+  const handleAddNode = useCallback(
+    (node: Node) => {
+      mutateNodes((current) => [...current, node])
+    },
+    [mutateNodes],
+  )
+
+  const handleAddGroupAtPosition = useCallback(
+    (
+      position: { x: number; y: number },
+      size: { width: number; height: number },
+      theme: ThemeName,
+      label: string,
+    ) => {
+      mutateNodes((current) =>
+        addGroupAtPosition(current, position, theme, label, size),
+      )
+    },
+    [mutateNodes],
+  )
+
+  const openIconPicker = useCallback(
+    (nodeId: string) => {
+      setIconPickerNodeId(nodeId)
+      setNodes((current) => {
+        const target = current.find((node) => node.id === nodeId)
+        if (target) {
+          setSelectedNode(target as SelectedDiagramNode)
+          setSelectedNodes([target])
+        }
+        return current.map((node) => ({
+          ...node,
+          selected: node.id === nodeId,
+        }))
+      })
+    },
+    [setNodes],
+  )
+
+  const closeIconPicker = useCallback(() => {
+    setIconPickerNodeId(null)
+  }, [])
+
+  const resolvedSelectedNode = selectedNode
+    ? ((nodes.find((node) => node.id === selectedNode.id) as
+        | SelectedDiagramNode
+        | undefined) ?? selectedNode)
+    : null
+
+  const resolvedSelectedNodes = selectedNodes.map(
+    (node) => nodes.find((entry) => entry.id === node.id) ?? node,
+  )
+
+  const resolvedSelectedEdges = selectedEdges.map(
+    (edge) => edges.find((entry) => entry.id === edge.id) ?? edge,
+  )
+
+  const diagramUiValue = useMemo(
+    () => ({
+      openIconPicker,
+      closeIconPicker,
+      iconPickerNodeId,
+    }),
+    [openIconPicker, closeIconPicker, iconPickerNodeId],
+  )
+
+  return (
+    <DiagramUiContext.Provider value={diagramUiValue}>
+      <div className="flex h-full w-full">
+        <main className="relative min-w-0 flex-1">
+          <DiagramCanvas
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={handleConnect}
+            onSelectionChange={handleSelectionChange}
+            onNodeDragStop={handleNodeDragStop}
+            onAddNode={handleAddNode}
+            onAddGroupAtPosition={handleAddGroupAtPosition}
+            activeTheme={activeTheme}
+            onThemeChange={setActiveTheme}
+            canvasTool={canvasTool}
+            onCanvasToolChange={setCanvasTool}
+            lineStrokeStyle={lineStrokeStyle}
+            onLineStrokeStyleChange={setLineStrokeStyle}
+            lineDirection={lineDirection}
+            onLineDirectionChange={setLineDirection}
+          />
+        </main>
+
+        <Sidebar
+          nodes={nodes}
+          edges={edges}
+          selectedNode={resolvedSelectedNode}
+          selectedNodes={resolvedSelectedNodes}
+          selectedEdges={resolvedSelectedEdges}
+          iconPickerNodeId={iconPickerNodeId}
+          onUpdateLabel={handleUpdateLabel}
+          onUpdateUrl={handleUpdateUrl}
+          onUpdateIcon={handleUpdateIcon}
+          onUpdateTheme={handleUpdateTheme}
+          onUpdateEdgeStrokeStyle={handleUpdateEdgeStrokeStyle}
+          onUpdateEdgeDirection={handleUpdateEdgeDirection}
+          onGroupSelection={handleGroupSelection}
+          onCloseIconPicker={closeIconPicker}
+        />
+      </div>
+    </DiagramUiContext.Provider>
+  )
+}
+
+export default App
