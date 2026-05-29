@@ -192,6 +192,7 @@ export function ConnectorEdge({
     <>
       {selected && (
         <path
+          className="connector-edge-selection-halo"
           d={edgePath}
           fill="none"
           stroke={edge.selected}

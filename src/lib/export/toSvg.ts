@@ -4,7 +4,6 @@ import {
   type Node,
 } from '@xyflow/react'
 import { toSvg } from 'html-to-image'
-import { canvas } from '../../tokens/colors'
 
 const EXPORT_PADDING = 40
 const LABEL_EXTRA_HEIGHT = 28
@@ -69,7 +68,7 @@ export async function exportDiagramSvg(
     )
 
     const dataUrl = await toSvg(viewportElement, {
-      backgroundColor: canvas.bg,
+      backgroundColor: 'transparent',
       width: imageWidth,
       height: imageHeight,
       filter: (node) => {

@@ -81,13 +81,31 @@ body {
 
 .diagram-exporting .react-flow__handle,
 .diagram-exporting .react-flow__selection,
+.diagram-exporting .react-flow__edge-interaction,
 .diagram-exporting .group-resize-handle {
   display: none !important;
+}
+
+.diagram-exporting .react-flow__pane,
+.diagram-exporting .react-flow__viewport {
+  background: transparent !important;
 }
 
 .diagram-exporting .react-flow__node-asset.selected > .asset-node > div:first-child,
 .diagram-exporting .react-flow__node-group.selected .group-node > div[role='presentation'] {
   outline: none !important;
+}
+
+.diagram-exporting .connector-edge-selection-halo {
+  display: none !important;
+}
+
+.diagram-exporting .react-flow__edge.selected path {
+  stroke: var(--edge-default) !important;
+}
+
+.diagram-exporting .react-flow__edge.selected .react-flow__edge-path {
+  stroke-width: 1 !important;
 }
 
 .react-flow__handle {
