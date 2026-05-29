@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type RefObject } from 'react'
-import { Check, NavArrowDown, Plus, Trash } from 'iconoir-react'
+import { NavArrowDown, Plus, Trash } from 'iconoir-react'
 import type { Edge, Node } from '@xyflow/react'
 import { DiagramParseError } from '../../lib/import/fromSchema'
 import { fromMermaid } from '../../lib/import/fromMermaid'
@@ -210,11 +210,8 @@ export function ProjectMenu({
           )}
           <div
             style={uiTextStyle}
-            className="flex items-center gap-1 text-[11px] text-[var(--neutral-text-faint)]"
+            className="text-[11px] text-[var(--neutral-text-faint)]"
           >
-            {saveStatus === 'saved' && (
-              <Check width={12} height={12} strokeWidth={2} color="var(--theme-blue)" />
-            )}
             {saveStatus === 'saving' ? 'Saving…' : 'Saved automatically'}
           </div>
         </div>

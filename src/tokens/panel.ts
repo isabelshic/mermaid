@@ -18,7 +18,7 @@ export const panelCardClass = [
 
 export const panelDividerClass = 'bg-[var(--neutral-divider)]'
 export const panelHoverClass = 'hover:bg-[var(--neutral-hover)]'
-export const panelActiveClass = 'bg-[var(--neutral-active)]'
+export const panelActiveClass = 'bg-[var(--theme-blue-fill)]'
 export const panelSelectedClass = 'bg-[var(--theme-blue-fill)]'
 export const panelInputClass =
   'border border-[var(--neutral-border)] bg-white px-2 py-1.5 font-[family-name:var(--font-ui)] outline-none focus:border-[#0066ff]'
