@@ -32,6 +32,8 @@ type UseDiagramKeyboardShortcutsOptions = {
   onPaste: (nodes: Node[], edges: Edge[]) => void
   onUndo: () => void
   onRedo: () => void
+  onSave?: () => void
+  onOpen?: () => void
 }
 
 export function useDiagramKeyboardShortcuts({
@@ -43,6 +45,8 @@ export function useDiagramKeyboardShortcuts({
   onPaste,
   onUndo,
   onRedo,
+  onSave,
+  onOpen,
 }: UseDiagramKeyboardShortcutsOptions) {
   const clipboardRef = useRef<DiagramClipboard | null>(null)
 
@@ -61,6 +65,18 @@ export function useDiagramKeyboardShortcuts({
       }
 
       const key = event.key.toLowerCase()
+
+      if (key === 's' && onSave) {
+        event.preventDefault()
+        onSave()
+        return
+      }
+
+      if (key === 'o' && onOpen) {
+        event.preventDefault()
+        onOpen()
+        return
+      }
 
       if (key === 'z') {
         event.preventDefault()
@@ -104,6 +120,8 @@ export function useDiagramKeyboardShortcuts({
     onPaste,
     onRedo,
     onUndo,
+    onSave,
+    onOpen,
     selectedNodeIds,
   ])
 }

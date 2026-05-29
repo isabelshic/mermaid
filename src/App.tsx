@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import type { Connection, Edge, Node } from '@xyflow/react'
 import { DiagramCanvas } from './components/canvas/DiagramCanvas'
+import { ProjectMenu } from './components/projects/ProjectMenu'
 import { useDiagramHistory } from './hooks/useDiagramHistory'
 import { useDiagramKeyboardShortcuts } from './hooks/useDiagramKeyboardShortcuts'
+import { useProjectSession } from './hooks/useProjectSession'
 import {
   appendEdge,
   getEdgeDirection,
@@ -10,10 +12,12 @@ import {
   normalizeBidirectionalEdges,
   setEdgeDirection,
 } from './lib/edges'
+import { downloadJson, toSchema } from './lib/export/toSchema'
+import { fromSchema } from './lib/import/fromSchema'
+import { initProjectSession } from './lib/projects/projectStore'
 import { Sidebar } from './components/inspector/Sidebar'
 import type { SelectedDiagramNode } from './components/inspector/NodeInspector'
 import { DiagramUiContext } from './context/DiagramUiContext'
-import { createSampleDiagram } from './lib/demo/sampleDiagram'
 import {
   createGroupFromSelection,
   absorbAssetsIntoGroup,
@@ -26,13 +30,17 @@ import type { CanvasTool } from './types/canvas'
 import type { EdgeDirection, EdgeStrokeStyle } from './types/diagram'
 
 function App() {
-  const sample = useMemo(() => {
-    const diagram = createSampleDiagram()
+  const jsonInputRef = useRef<HTMLInputElement>(null)
+
+  const initialSession = useMemo(() => initProjectSession(), [])
+
+  const initialDiagram = useMemo(() => {
+    const diagram = fromSchema(initialSession.document)
     return {
-      ...diagram,
+      nodes: diagram.nodes,
       edges: normalizeBidirectionalEdges(diagram.edges),
     }
-  }, [])
+  }, [initialSession])
 
   const {
     nodes,
@@ -45,7 +53,24 @@ function App() {
     replaceDiagram,
     undo,
     redo,
-  } = useDiagramHistory(sample.nodes, sample.edges)
+  } = useDiagramHistory(initialDiagram.nodes, initialDiagram.edges)
+
+  const {
+    activeProjectId,
+    activeProjectName,
+    projects,
+    saveStatus,
+    switchToProject,
+    createNewProject,
+    renameActiveProject,
+    removeProject,
+    importProject,
+  } = useProjectSession({
+    initialSession,
+    nodes,
+    edges,
+    replaceDiagram,
+  })
 
   const [selectedNode, setSelectedNode] = useState<SelectedDiagramNode | null>(
     null,
@@ -57,6 +82,13 @@ function App() {
   const [lineStrokeStyle, setLineStrokeStyle] = useState<EdgeStrokeStyle>('dashed')
   const [lineDirection, setLineDirection] = useState<EdgeDirection>('one-way')
   const [iconPickerNodeId, setIconPickerNodeId] = useState<string | null>(null)
+
+  const clearSelection = useCallback(() => {
+    setSelectedNode(null)
+    setSelectedNodes([])
+    setSelectedEdges([])
+    setIconPickerNodeId(null)
+  }, [])
 
   const selectedNodeIds = useMemo(() => {
     const ids = new Set<string>()
@@ -78,7 +110,39 @@ function App() {
     onPaste: replaceDiagram,
     onUndo: undo,
     onRedo: redo,
+    onSave: () => downloadJson(toSchema(nodes, edges)),
+    onOpen: () => jsonInputRef.current?.click(),
   })
+
+  const handleImportDiagram = useCallback(
+    (nextNodes: Node[], nextEdges: Edge[], name: string) => {
+      const document = toSchema(nextNodes, nextEdges)
+      importProject(document, name)
+      clearSelection()
+    },
+    [clearSelection, importProject],
+  )
+
+  const handleSwitchProject = useCallback(
+    (projectId: string) => {
+      switchToProject(projectId)
+      clearSelection()
+    },
+    [clearSelection, switchToProject],
+  )
+
+  const handleCreateProject = useCallback(() => {
+    createNewProject()
+    clearSelection()
+  }, [clearSelection, createNewProject])
+
+  const handleDeleteProject = useCallback(
+    (projectId: string) => {
+      removeProject(projectId)
+      clearSelection()
+    },
+    [clearSelection, removeProject],
+  )
 
   const handleConnect = useCallback(
     (connection: Connection) => {
@@ -332,6 +396,21 @@ function App() {
     <DiagramUiContext.Provider value={diagramUiValue}>
       <div className="flex h-full w-full">
         <main className="relative min-w-0 flex-1">
+          <div className="pointer-events-none absolute left-4 top-4 z-20">
+            <ProjectMenu
+              activeProjectId={activeProjectId}
+              activeProjectName={activeProjectName}
+              projects={projects}
+              saveStatus={saveStatus}
+              onSwitchProject={handleSwitchProject}
+              onCreateProject={handleCreateProject}
+              onRenameProject={renameActiveProject}
+              onDeleteProject={handleDeleteProject}
+              onImportDiagram={handleImportDiagram}
+              jsonInputRef={jsonInputRef}
+            />
+          </div>
+
           <DiagramCanvas
             nodes={nodes}
             edges={edges}
