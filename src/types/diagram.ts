@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
+import type { AssetConnectionSlotId } from '../lib/connectionSlots'
 import type { ThemeName } from '../tokens/colors'
 import type { IconName } from '../lib/icons'
 
@@ -43,6 +44,8 @@ export type SchemaEdge = {
   id: string
   source: string
   target: string
+  sourceHandle?: AssetConnectionSlotId
+  targetHandle?: AssetConnectionSlotId
   strokeStyle?: EdgeStrokeStyle
   direction?: EdgeDirection
   bidirectional?: boolean

@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
+import { isAssetConnectionSlotId } from '../connectionSlots'
 import { withConnectorDirection } from '../edges'
 import { iconNames, type IconName } from '../icons'
 import {
@@ -167,6 +168,32 @@ function parseSchemaEdge(value: unknown, index: number): SchemaEdge {
     edge.bidirectional = value.bidirectional
   }
 
+  if (value.sourceHandle !== undefined) {
+    const sourceHandle = requireString(
+      value.sourceHandle,
+      `edges[${index}].sourceHandle`,
+    )
+    if (!isAssetConnectionSlotId(sourceHandle)) {
+      throw new DiagramParseError(
+        `Invalid sourceHandle at edges[${index}]: ${sourceHandle}`,
+      )
+    }
+    edge.sourceHandle = sourceHandle
+  }
+
+  if (value.targetHandle !== undefined) {
+    const targetHandle = requireString(
+      value.targetHandle,
+      `edges[${index}].targetHandle`,
+    )
+    if (!isAssetConnectionSlotId(targetHandle)) {
+      throw new DiagramParseError(
+        `Invalid targetHandle at edges[${index}]: ${targetHandle}`,
+      )
+    }
+    edge.targetHandle = targetHandle
+  }
+
   return edge
 }
 
@@ -256,6 +283,8 @@ function schemaEdgeToReactFlow(edge: SchemaEdge): Edge {
       id: edge.id,
       source: edge.source,
       target: edge.target,
+      sourceHandle: edge.sourceHandle ?? null,
+      targetHandle: edge.targetHandle ?? null,
       type: 'connector',
       data: {
         strokeStyle,

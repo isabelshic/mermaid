@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react'
 import type { CSSProperties, MouseEvent } from 'react'
+import type { AssetConnectionSlotId } from '../../lib/connectionSlots'
 import { themes } from '../../tokens/colors'
 import { getIcon } from '../../lib/icons'
 import type { AssetNodeData } from '../../types/diagram'
@@ -7,7 +8,7 @@ import { InlineLabelEditor } from './InlineLabelEditor'
 import { useDiagramUi } from '../../context/DiagramUiContext'
 
 type SlotConfig = {
-  id: string
+  id: AssetConnectionSlotId
   position: Position
   style: CSSProperties
 }

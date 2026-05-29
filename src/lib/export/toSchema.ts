@@ -1,4 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
+import { isAssetConnectionSlotId } from '../connectionSlots'
 import { getEdgeDirection } from '../edges'
 import type {
   AssetNodeData,
@@ -50,7 +51,7 @@ export function toSchema(nodes: Node[], edges: Edge[]): DiagramDocument {
 
   const schemaEdges: SchemaEdge[] = edges.map((edge) => {
     const direction = getEdgeDirection(edge.data)
-    return {
+    const schemaEdge: SchemaEdge = {
       id: edge.id,
       source: edge.source,
       target: edge.target,
@@ -60,6 +61,22 @@ export function toSchema(nodes: Node[], edges: Edge[]): DiagramDocument {
       direction,
       bidirectional: direction === 'both',
     }
+
+    if (
+      edge.sourceHandle &&
+      isAssetConnectionSlotId(edge.sourceHandle)
+    ) {
+      schemaEdge.sourceHandle = edge.sourceHandle
+    }
+
+    if (
+      edge.targetHandle &&
+      isAssetConnectionSlotId(edge.targetHandle)
+    ) {
+      schemaEdge.targetHandle = edge.targetHandle
+    }
+
+    return schemaEdge
   })
 
   return {
