@@ -2,6 +2,7 @@ import { NodeResizer, useReactFlow, type NodeProps } from '@xyflow/react'
 import type { MouseEvent } from 'react'
 import { themes } from '../../tokens/colors'
 import type { GroupNodeData } from '../../types/diagram'
+import { MIN_GROUP_HEIGHT, MIN_GROUP_WIDTH } from '../../lib/groupBounds'
 import { InlineLabelEditor } from './InlineLabelEditor'
 
 export function GroupNode({ data, selected, id }: NodeProps) {
@@ -40,8 +41,8 @@ export function GroupNode({ data, selected, id }: NodeProps) {
 
       <NodeResizer
         isVisible={selected}
-        minWidth={160}
-        minHeight={120}
+        minWidth={MIN_GROUP_WIDTH}
+        minHeight={MIN_GROUP_HEIGHT}
         handleClassName="group-resize-handle"
         lineClassName="group-resize-line"
         color={theme.color}

@@ -56,6 +56,37 @@ export function getNodeBounds(node: Node, nodes: Node[]): Bounds {
   }
 }
 
+/** React Flow requires parent nodes to appear before their children in the array. */
+export function reorderNodesForSubflows(nodes: Node[]): Node[] {
+  const byId = new Map(nodes.map((node) => [node.id, node]))
+  const result: Node[] = []
+  const added = new Set<string>()
+
+  const addNode = (node: Node) => {
+    if (added.has(node.id)) {
+      return
+    }
+
+    if (node.parentId) {
+      const parent = byId.get(node.parentId)
+      if (parent) {
+        addNode(parent)
+      }
+    }
+
+    if (!added.has(node.id)) {
+      added.add(node.id)
+      result.push(node)
+    }
+  }
+
+  for (const node of nodes) {
+    addNode(node)
+  }
+
+  return result
+}
+
 export function boundsIntersect(a: Bounds, b: Bounds): boolean {
   return (
     a.x < b.x + b.width &&
@@ -205,7 +236,7 @@ export function applyNodeChangesWithSnap(
   }
 
   return next.map((node) =>
-    positionIds.has(node.id)
+    positionIds.has(node.id) && !node.parentId
       ? {
           ...node,
           position: snapNodePosition(node, node.position, next),

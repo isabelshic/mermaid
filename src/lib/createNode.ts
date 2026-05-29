@@ -10,6 +10,7 @@ import {
   boundsIntersect,
   getAbsolutePosition,
   getNodeBounds,
+  reorderNodesForSubflows,
 } from './snap'
 
 const GROUP_PADDING_X = 35
@@ -68,7 +69,6 @@ export function createGroupFromSelection(
     return {
       ...node,
       parentId: groupId,
-      extent: 'parent' as const,
       position: {
         x: absolute.x - groupPosition.x,
         y: absolute.y - groupPosition.y,
@@ -76,7 +76,7 @@ export function createGroupFromSelection(
     }
   })
 
-  return [...updatedNodes, groupNode]
+  return reorderNodesForSubflows([...updatedNodes, groupNode])
 }
 
 export function createAssetNode(
@@ -123,7 +123,7 @@ export function absorbAssetsIntoGroup(nodes: Node[], groupId: string): Node[] {
 
   const groupBounds = getNodeBounds(groupNode, nodes)
 
-  return nodes.map((node) => {
+  const next = nodes.map((node) => {
     if (node.type !== 'asset' || node.parentId || node.id === groupId) {
       return node
     }
@@ -139,13 +139,46 @@ export function absorbAssetsIntoGroup(nodes: Node[], groupId: string): Node[] {
     return {
       ...node,
       parentId: groupId,
-      extent: 'parent' as const,
       position: {
         x: absolute.x - groupNode.position.x,
         y: absolute.y - groupNode.position.y,
       },
     }
   })
+
+  return reorderNodesForSubflows(next)
+}
+
+export function syncAssetGroupAfterDrag(nodes: Node[], assetId: string): Node[] {
+  const asset = nodes.find((node) => node.id === assetId && node.type === 'asset')
+
+  if (!asset) {
+    return nodes
+  }
+
+  let next = nodes
+
+  if (asset.parentId) {
+    const parent = nodes.find((node) => node.id === asset.parentId)
+
+    if (
+      !parent ||
+      !boundsIntersect(getNodeBounds(asset, nodes), getNodeBounds(parent, nodes))
+    ) {
+      const absolute = getAbsolutePosition(asset, nodes)
+      next = nodes.map((node) =>
+        node.id === assetId
+          ? { ...node, parentId: undefined, position: absolute }
+          : node,
+      )
+    }
+  } else {
+    for (const group of nodes.filter((node) => node.type === 'group')) {
+      next = absorbAssetsIntoGroup(next, group.id)
+    }
+  }
+
+  return reorderNodesForSubflows(next)
 }
 
 export function addGroupAtPosition(

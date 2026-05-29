@@ -14,7 +14,12 @@ import { Sidebar } from './components/inspector/Sidebar'
 import type { SelectedDiagramNode } from './components/inspector/NodeInspector'
 import { DiagramUiContext } from './context/DiagramUiContext'
 import { createSampleDiagram } from './lib/demo/sampleDiagram'
-import { createGroupFromSelection, absorbAssetsIntoGroup, addGroupAtPosition } from './lib/createNode'
+import {
+  createGroupFromSelection,
+  absorbAssetsIntoGroup,
+  addGroupAtPosition,
+  syncAssetGroupAfterDrag,
+} from './lib/createNode'
 import type { IconName } from './lib/icons'
 import type { ThemeName } from './tokens/colors'
 import type { CanvasTool } from './types/canvas'
@@ -245,11 +250,17 @@ function App() {
 
   const handleNodeDragStop = useCallback(
     (node: Node) => {
-      if (node.type !== 'group') {
-        return
-      }
+      mutateNodes((current) => {
+        if (node.type === 'group') {
+          return absorbAssetsIntoGroup(current, node.id)
+        }
 
-      mutateNodes((current) => absorbAssetsIntoGroup(current, node.id))
+        if (node.type === 'asset') {
+          return syncAssetGroupAfterDrag(current, node.id)
+        }
+
+        return current
+      })
     },
     [mutateNodes],
   )

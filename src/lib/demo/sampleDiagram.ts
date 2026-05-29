@@ -13,7 +13,6 @@ export const sampleNodes: Node[] = [
     id: 'cron',
     type: 'asset',
     parentId: 'workflow',
-    extent: 'parent',
     position: { x: 35, y: 48 },
     data: {
       icon: 'Globe',
@@ -26,7 +25,6 @@ export const sampleNodes: Node[] = [
     id: 'api',
     type: 'asset',
     parentId: 'workflow',
-    extent: 'parent',
     position: { x: 130, y: 48 },
     data: {
       icon: 'Rhombus',
@@ -47,7 +45,6 @@ export const sampleNodes: Node[] = [
     id: 'workers',
     type: 'asset',
     parentId: 'compute',
-    extent: 'parent',
     position: { x: 35, y: 48 },
     data: {
       icon: 'Cpu',
@@ -60,7 +57,6 @@ export const sampleNodes: Node[] = [
     id: 'pages',
     type: 'asset',
     parentId: 'compute',
-    extent: 'parent',
     position: { x: 130, y: 48 },
     data: {
       icon: 'Page',
@@ -81,7 +77,6 @@ export const sampleNodes: Node[] = [
     id: 'ai-models',
     type: 'asset',
     parentId: 'workers-ai',
-    extent: 'parent',
     position: { x: 35, y: 48 },
     data: {
       icon: 'Sparks',
@@ -94,7 +89,6 @@ export const sampleNodes: Node[] = [
     id: 'ai-inference',
     type: 'asset',
     parentId: 'workers-ai',
-    extent: 'parent',
     position: { x: 130, y: 48 },
     data: {
       icon: 'Sparks',
@@ -115,7 +109,6 @@ export const sampleNodes: Node[] = [
     id: 'r2',
     type: 'asset',
     parentId: 'storage',
-    extent: 'parent',
     position: { x: 35, y: 48 },
     data: {
       icon: 'Database',
@@ -128,7 +121,6 @@ export const sampleNodes: Node[] = [
     id: 'd1',
     type: 'asset',
     parentId: 'storage',
-    extent: 'parent',
     position: { x: 130, y: 48 },
     data: {
       icon: 'Database',

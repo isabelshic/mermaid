@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react'
-import { getAbsolutePosition } from './snap'
+import { getAbsolutePosition, reorderNodesForSubflows } from './snap'
 
 export type DiagramClipboard = {
   nodes: Node[]
@@ -131,7 +131,6 @@ export function pasteClipboard(
       ...cloneNode(node),
       id: idMap.get(node.id)!,
       parentId,
-      extent: parentId ? ('parent' as const) : undefined,
       position,
       selected: true,
     }
@@ -146,10 +145,10 @@ export function pasteClipboard(
   }))
 
   return {
-    nodes: [
+    nodes: reorderNodesForSubflows([
       ...nodes.map((node) => ({ ...node, selected: false })),
       ...pastedNodes,
-    ],
+    ]),
     edges: [...edges, ...pastedEdges],
   }
 }

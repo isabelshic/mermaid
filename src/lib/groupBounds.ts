@@ -1,7 +1,7 @@
 import { GRID_SIZE } from './snap'
 
-export const MIN_GROUP_WIDTH = 160
-export const MIN_GROUP_HEIGHT = 120
+export const MIN_GROUP_WIDTH = GRID_SIZE * 4
+export const MIN_GROUP_HEIGHT = GRID_SIZE * 4
 
 export const DEFAULT_GROUP_WIDTH = 230
 export const DEFAULT_GROUP_HEIGHT = 130
