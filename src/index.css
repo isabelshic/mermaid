@@ -79,6 +79,17 @@ body {
   stroke-width: 20px !important;
 }
 
+.diagram-exporting .react-flow__handle,
+.diagram-exporting .react-flow__selection,
+.diagram-exporting .group-resize-handle {
+  display: none !important;
+}
+
+.diagram-exporting .react-flow__node-asset.selected > .asset-node > div:first-child,
+.diagram-exporting .react-flow__node-group.selected .group-node > div[role='presentation'] {
+  outline: none !important;
+}
+
 .react-flow__handle {
   opacity: 0;
   transition:

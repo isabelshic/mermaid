@@ -31,6 +31,7 @@ import type { EdgeDirection, EdgeStrokeStyle } from './types/diagram'
 
 function App() {
   const jsonInputRef = useRef<HTMLInputElement>(null)
+  const svgExportRef = useRef<(() => Promise<void>) | null>(null)
 
   const initialSession = useMemo(() => initProjectSession(), [])
 
@@ -429,6 +430,7 @@ function App() {
             onLineStrokeStyleChange={handleLineStrokeStyleChange}
             lineDirection={lineDirection}
             onLineDirectionChange={handleLineDirectionChange}
+            svgExportRef={svgExportRef}
           />
         </main>
 
@@ -444,6 +446,7 @@ function App() {
           onUpdateTheme={handleUpdateTheme}
           onGroupSelection={handleGroupSelection}
           onCloseIconPicker={closeIconPicker}
+          onExportSvg={() => svgExportRef.current?.() ?? Promise.resolve()}
         />
       </div>
     </DiagramUiContext.Provider>

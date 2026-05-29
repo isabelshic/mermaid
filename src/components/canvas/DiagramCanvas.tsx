@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import {
   ReactFlow,
   Controls,
@@ -30,6 +30,7 @@ import type { CanvasTool } from '../../types/canvas'
 import type { EdgeDirection, EdgeStrokeStyle } from '../../types/diagram'
 import { CONNECTOR_ARROW_MARKER } from '../../lib/edges'
 import { snapNodePosition } from '../../lib/snap'
+import { useDiagramSvgExport } from '../../hooks/useDiagramSvgExport'
 
 const nodeTypes = {
   group: GroupNode,
@@ -68,6 +69,7 @@ type DiagramCanvasProps = {
   onLineStrokeStyleChange: (strokeStyle: EdgeStrokeStyle) => void
   lineDirection: EdgeDirection
   onLineDirectionChange: (direction: EdgeDirection) => void
+  svgExportRef?: React.MutableRefObject<(() => Promise<void>) | null>
 }
 
 function DiagramCanvasInner({
@@ -88,9 +90,23 @@ function DiagramCanvasInner({
   onLineStrokeStyleChange,
   lineDirection,
   onLineDirectionChange,
+  svgExportRef,
 }: DiagramCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
+  const exportSvg = useDiagramSvgExport()
   const canvasRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!svgExportRef) {
+      return
+    }
+
+    svgExportRef.current = exportSvg
+
+    return () => {
+      svgExportRef.current = null
+    }
+  }, [exportSvg, svgExportRef])
 
   const focusCanvas = useCallback(() => {
     canvasRef.current?.focus()

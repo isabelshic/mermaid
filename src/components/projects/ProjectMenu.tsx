@@ -257,7 +257,7 @@ export function ProjectMenu({
                       }`}
                     >
                       <span
-                        style={uiTextStyle}
+                        style={{ ...uiTextStyle, fontWeight: 500 }}
                         className="truncate text-[13px] text-[var(--neutral-text)]"
                       >
                         {project.name}
